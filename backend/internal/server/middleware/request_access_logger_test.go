@@ -112,6 +112,30 @@ func TestRequestLogger_KeepIncomingRequestID(t *testing.T) {
 	}
 }
 
+func TestRequestLogger_SanitizesIncomingRequestID(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	r.Use(RequestLogger())
+	r.GET("/t", func(c *gin.Context) {
+		reqID, _ := c.Request.Context().Value(ctxkey.RequestID).(string)
+		if reqID != "abcxyz" {
+			t.Fatalf("request_id=%q, want sanitized value", reqID)
+		}
+		c.Status(http.StatusOK)
+	})
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/t", nil)
+	req.Header.Set(requestIDHeader, "abc\n\txyz")
+	r.ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("status=%d", w.Code)
+	}
+	if got := w.Header().Get(requestIDHeader); got != "abcxyz" {
+		t.Fatalf("header=%q, want sanitized value", got)
+	}
+}
+
 func TestLogger_AccessLogIncludesCoreFields(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	sink := initMiddlewareTestLogger(t)

@@ -555,6 +555,7 @@ type ServerConfig struct {
 	IdleTimeout        int       `mapstructure:"idle_timeout"`          // 空闲连接超时（秒）
 	TrustedProxies     []string  `mapstructure:"trusted_proxies"`       // 可信代理列表（CIDR/IP）
 	MaxRequestBodySize int64     `mapstructure:"max_request_body_size"` // 全局最大请求体限制
+	MaxHeaderBytes     int       `mapstructure:"max_header_bytes"`      // 最大请求头大小
 	H2C                H2CConfig `mapstructure:"h2c"`                   // HTTP/2 Cleartext 配置
 }
 
@@ -1542,6 +1543,7 @@ func setDefaults() {
 	viper.SetDefault("server.idle_timeout", 120)       // 120秒空闲超时
 	viper.SetDefault("server.trusted_proxies", []string{})
 	viper.SetDefault("server.max_request_body_size", int64(256*1024*1024))
+	viper.SetDefault("server.max_header_bytes", 1<<20)
 	// H2C 默认配置
 	viper.SetDefault("server.h2c.enabled", false)
 	viper.SetDefault("server.h2c.max_concurrent_streams", uint32(50))      // 50 个并发流
@@ -2058,6 +2060,18 @@ func (c *Config) Validate() error {
 			return fmt.Errorf("server.frontend_url invalid: must not include userinfo")
 		}
 		warnIfInsecureURL("server.frontend_url", c.Server.FrontendURL)
+	}
+	if c.Server.ReadHeaderTimeout <= 0 {
+		return fmt.Errorf("server.read_header_timeout must be positive")
+	}
+	if c.Server.IdleTimeout <= 0 {
+		return fmt.Errorf("server.idle_timeout must be positive")
+	}
+	if c.Server.MaxRequestBodySize < 0 {
+		return fmt.Errorf("server.max_request_body_size must be non-negative")
+	}
+	if c.Server.MaxHeaderBytes <= 0 {
+		return fmt.Errorf("server.max_header_bytes must be positive")
 	}
 	if c.JWT.ExpireHour <= 0 {
 		return fmt.Errorf("jwt.expire_hour must be positive")

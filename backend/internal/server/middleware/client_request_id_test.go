@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/Wei-Shaw/sub2api/internal/pkg/ctxkey"
@@ -47,4 +48,23 @@ func TestClientRequestIDPreservesExistingContextID(t *testing.T) {
 	require.Equal(t, http.StatusOK, w.Code)
 	require.Equal(t, "existing-client-request-id", w.Body.String())
 	require.Equal(t, "existing-client-request-id", w.Header().Get(clientRequestIDHeader))
+}
+
+func TestClientRequestIDSanitizesExistingContextID(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	router.Use(ClientRequestID())
+	router.GET("/", func(c *gin.Context) {
+		value, _ := c.Request.Context().Value(ctxkey.ClientRequestID).(string)
+		c.String(http.StatusOK, value)
+	})
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req = req.WithContext(context.WithValue(req.Context(), ctxkey.ClientRequestID, strings.Repeat("x", maxRequestIDLength+10)+"\n"))
+	router.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code)
+	require.Len(t, w.Body.String(), maxRequestIDLength)
+	require.Equal(t, w.Body.String(), w.Header().Get(clientRequestIDHeader))
 }

@@ -1512,6 +1512,26 @@ func TestValidateConfigErrors(t *testing.T) {
 			wantErr: "gateway.scheduling.outbox_lag_rebuild_failures",
 		},
 		{
+			name:    "server read header timeout",
+			mutate:  func(c *Config) { c.Server.ReadHeaderTimeout = 0 },
+			wantErr: "server.read_header_timeout",
+		},
+		{
+			name:    "server idle timeout",
+			mutate:  func(c *Config) { c.Server.IdleTimeout = 0 },
+			wantErr: "server.idle_timeout",
+		},
+		{
+			name:    "server max request body size",
+			mutate:  func(c *Config) { c.Server.MaxRequestBodySize = -1 },
+			wantErr: "server.max_request_body_size",
+		},
+		{
+			name:    "server max header bytes",
+			mutate:  func(c *Config) { c.Server.MaxHeaderBytes = 0 },
+			wantErr: "server.max_header_bytes",
+		},
+		{
 			name: "gateway outbox lag rebuild",
 			mutate: func(c *Config) {
 				c.Gateway.Scheduling.OutboxLagWarnSeconds = 10

@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"context"
-	"strings"
 
 	"github.com/Wei-Shaw/sub2api/internal/pkg/ctxkey"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/logger"
@@ -23,8 +22,16 @@ func ClientRequestID() gin.HandlerFunc {
 			return
 		}
 
-		if v, _ := c.Request.Context().Value(ctxkey.ClientRequestID).(string); strings.TrimSpace(v) != "" {
-			c.Header(clientRequestIDHeader, strings.TrimSpace(v))
+		if v, _ := c.Request.Context().Value(ctxkey.ClientRequestID).(string); v != "" {
+			id := sanitizeRequestID(v)
+			if id == "" {
+				id = uuid.NewString()
+			}
+			c.Header(clientRequestIDHeader, id)
+			ctx := context.WithValue(c.Request.Context(), ctxkey.ClientRequestID, id)
+			requestLogger := logger.FromContext(ctx).With(zap.String("client_request_id", id))
+			ctx = logger.IntoContext(ctx, requestLogger)
+			c.Request = c.Request.WithContext(ctx)
 			c.Next()
 			return
 		}
@@ -32,7 +39,7 @@ func ClientRequestID() gin.HandlerFunc {
 		id := uuid.New().String()
 		c.Header(clientRequestIDHeader, id)
 		ctx := context.WithValue(c.Request.Context(), ctxkey.ClientRequestID, id)
-		requestLogger := logger.FromContext(ctx).With(zap.String("client_request_id", strings.TrimSpace(id)))
+		requestLogger := logger.FromContext(ctx).With(zap.String("client_request_id", id))
 		ctx = logger.IntoContext(ctx, requestLogger)
 		c.Request = c.Request.WithContext(ctx)
 		c.Next()

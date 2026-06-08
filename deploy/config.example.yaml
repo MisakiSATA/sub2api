@@ -32,6 +32,9 @@ server:
   # Applies to all requests, especially important for h2c first request memory protection
   # 适用于所有请求，对 h2c 第一请求的内存保护尤为重要
   max_request_body_size: 268435456
+  # Max request header size in bytes (default: 1MB)
+  # 最大请求头大小（字节，默认 1MB），用于限制异常大请求头的资源占用
+  max_header_bytes: 1048576
   # HTTP/2 Cleartext (h2c) configuration
   # HTTP/2 Cleartext (h2c) 配置
   h2c:
