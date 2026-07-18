@@ -20,6 +20,7 @@ describe('API Client', () => {
 
   afterEach(() => {
     vi.restoreAllMocks()
+    vi.unstubAllEnvs()
   })
 
   // --- 请求拦截器 ---
@@ -228,6 +229,64 @@ describe('API Client', () => {
         value: originalLocation,
         writable: true,
       })
+    })
+
+    it('memory refresh token mode refreshes without persisting the rotated refresh token', async () => {
+      vi.stubEnv('VITE_AUTH_REFRESH_TOKEN_STORAGE', 'memory')
+      vi.resetModules()
+      const authMod = await import('@/api/auth')
+      authMod.setAuthToken('expired-token')
+      authMod.setRefreshToken('memory-refresh-token')
+      const clientMod = await import('@/api/client')
+      apiClient = clientMod.apiClient
+
+      const originalAdapter = vi.fn()
+        .mockRejectedValueOnce({
+          response: {
+            status: 401,
+            data: { code: 'TOKEN_EXPIRED', message: 'Token expired' },
+          },
+          config: {
+            url: '/test',
+            method: 'get',
+            headers: { Authorization: 'Bearer expired-token' },
+          },
+          code: 'ERR_BAD_REQUEST',
+        })
+        .mockResolvedValueOnce({
+          status: 200,
+          data: { code: 0, data: { ok: true } },
+          headers: {},
+          config: {},
+          statusText: 'OK',
+        })
+      apiClient.defaults.adapter = originalAdapter
+
+      const postSpy = vi.spyOn(axios, 'post').mockResolvedValue({
+        data: {
+          code: 0,
+          data: {
+            access_token: 'new-access-token',
+            refresh_token: 'new-memory-refresh-token',
+            expires_in: 3600,
+          },
+        },
+      })
+
+      await expect(apiClient.get('/test')).resolves.toEqual(
+        expect.objectContaining({
+          data: { ok: true },
+        })
+      )
+
+      expect(postSpy).toHaveBeenCalledWith(
+        '/api/v1/auth/refresh',
+        { refresh_token: 'memory-refresh-token' },
+        { headers: { 'Content-Type': 'application/json' } }
+      )
+      expect(localStorage.getItem('auth_token')).toBe('new-access-token')
+      expect(localStorage.getItem('refresh_token')).toBeNull()
+      expect(authMod.getRefreshToken()).toBe('new-memory-refresh-token')
     })
   })
 

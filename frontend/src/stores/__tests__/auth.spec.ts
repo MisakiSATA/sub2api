@@ -61,6 +61,7 @@ describe('useAuthStore', () => {
 
   afterEach(() => {
     vi.useRealTimers()
+    vi.unstubAllEnvs()
   })
 
   // --- login ---
@@ -77,6 +78,18 @@ describe('useAuthStore', () => {
       expect(store.isAuthenticated).toBe(true)
       expect(localStorage.getItem('auth_token')).toBe('test-token-123')
       expect(localStorage.getItem('auth_user')).toBe(JSON.stringify(fakeUser))
+    })
+
+    it('memory refresh token mode does not persist refresh_token to localStorage', async () => {
+      vi.stubEnv('VITE_AUTH_REFRESH_TOKEN_STORAGE', 'memory')
+      mockLogin.mockResolvedValue(fakeAuthResponse)
+      const store = useAuthStore()
+
+      await store.login({ email: 'test@example.com', password: '123456' })
+
+      expect(store.token).toBe('test-token-123')
+      expect(localStorage.getItem('auth_token')).toBe('test-token-123')
+      expect(localStorage.getItem('refresh_token')).toBeNull()
     })
 
     it('登录失败时清除状态并抛出错误', async () => {

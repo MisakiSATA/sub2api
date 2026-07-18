@@ -2,6 +2,7 @@
 
 interface ImportMetaEnv {
   readonly VITE_API_BASE_URL: string
+  readonly VITE_AUTH_REFRESH_TOKEN_STORAGE?: 'localStorage' | 'memory'
   readonly BASE_URL: string
 }
 
