@@ -14,24 +14,23 @@ Current remotes:
 - `upstream`: `https://github.com/Wei-Shaw/sub2api.git`
 - `upstream` push URL: `DISABLED`
 
-The personal version prioritizes performance, security, and visual polish.
+The personal version is primarily for internal use and prioritizes performance and security.
 
 ## Goals
 
 1. Keep upstream available for comparison and periodic sync.
 2. Prevent accidental pushes to upstream.
 3. Maintain personal improvements in isolated branches and focused commits.
-4. Improve the fork along three product axes:
+4. Improve the fork along two product axes:
    - Performance: gateway hot paths, scheduling, caching, request logging overhead, frontend bundle cost.
    - Security: safer defaults, request/header sanitization, admin boundary hardening, dependency hygiene.
-   - Visual polish: clearer admin/user workflows, consistent UI states, responsive layout quality.
 5. Preserve compatibility with upstream enough that future merges remain manageable.
 
 ## Non-Goals
 
 1. Do not open pull requests to upstream.
 2. Do not rewrite broad architecture without a concrete need.
-3. Do not mix unrelated performance, security, and UI changes in one commit.
+3. Do not mix unrelated performance and security changes in one commit.
 4. Do not introduce new services or dependencies unless they solve a specific measured problem.
 
 ## Repository Strategy
@@ -75,15 +74,6 @@ Harden boundaries without changing expected product behavior:
 - Review admin-only routes and compliance gates for consistent middleware coverage.
 - Keep dependency updates aligned with existing CI and `pnpm-lock.yaml`.
 - Make local/deploy examples avoid unsafe defaults when possible.
-
-### Visual Polish
-
-Improve workflow clarity in existing Vue components rather than redesigning the whole app:
-
-- Keep admin pages dense, predictable, and operational.
-- Improve empty, loading, error, and disabled states where current views feel brittle.
-- Reuse existing common components before adding new design primitives.
-- Verify important UI changes with tests and browser screenshots.
 
 ## Sync Workflow
 
@@ -132,11 +122,11 @@ Backend changes:
   `go test -tags=integration ./...`
 - Lint before finalizing backend-heavy work: `golangci-lint run ./...`
 
-Frontend changes:
+Frontend changes, when required for security or performance:
 
 - Typecheck: `pnpm --dir frontend run typecheck`
 - Critical tests: use the root Makefile's `test-frontend-critical` target when available.
-- Full build for production-impacting UI changes: `pnpm --dir frontend run build`
+- Full build for production-impacting frontend changes: `pnpm --dir frontend run build`
 
 Documentation and workflow changes:
 
@@ -157,6 +147,6 @@ The first implementation should stay small and foundational:
 
 - Upstream may move quickly, so personal changes should remain focused and well documented.
 - Deep gateway or scheduler optimization can create subtle billing, failover, or account-selection regressions.
-- Visual changes can accidentally reduce admin density or make repeated operational workflows slower.
+- Performance changes can increase complexity if they are not measured or covered by targeted tests.
 
 Mitigation: keep changes small, verify with targeted tests, and make each commit explain which track it belongs to.
