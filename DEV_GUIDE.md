@@ -6,8 +6,10 @@
 
 | 项目 | 说明 |
 |------|------|
-| **上游仓库** | Wei-Shaw/sub2api |
-| **Fork 仓库** | bayma888/sub2api-bmai |
+| **上游仓库** | Wei-Shaw/sub2api（只读参考，不提交 PR，不 push） |
+| **个人 Fork 仓库** | MisakiSATA/sub2api |
+| **当前个人分支** | personal/optimization |
+| **个人优化目标** | 安全 + 性能（对内使用，优先稳定可验证） |
 | **技术栈** | Go 后端 (Ent ORM + Gin) + Vue3 前端 (pnpm) |
 | **数据库** | PostgreSQL 16 + Redis |
 | **包管理** | 后端: go modules, 前端: **pnpm**（不是 npm） |
@@ -34,11 +36,15 @@
 ### 开发工具
 
 ```bash
-# golangci-lint v2.7
-go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.7
+# Go 1.26.4（与 backend/go.mod 和 CI 保持一致）
+go version
 
-# pnpm (前端包管理)
-npm install -g pnpm
+# golangci-lint v2.9（与 .github/workflows/backend-ci.yml 保持一致）
+go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.9
+
+# pnpm 9 + Node.js 20（与 CI 保持一致）
+node --version
+pnpm --version
 ```
 
 ## 三、CI/CD 流水线
@@ -47,13 +53,14 @@ npm install -g pnpm
 
 | Workflow | 触发条件 | 检查内容 |
 |----------|----------|----------|
-| **backend-ci.yml** | push, pull_request | 单元测试 + 集成测试 + golangci-lint v2.7 |
+| **backend-ci.yml** | push, pull_request | 单元测试 + 集成测试 + golangci-lint v2.9 |
 | **security-scan.yml** | push, pull_request, 每周一 | govulncheck + gosec + pnpm audit |
 | **release.yml** | tag `v*` | 构建发布（PR 不触发） |
 
 ### CI 要求
 
-- Go 版本必须是 **1.25.7**
+- Go 版本必须是 **1.26.4**
+- golangci-lint 使用 **v2.9**
 - 前端使用 `pnpm install --frozen-lockfile`，必须提交 `pnpm-lock.yaml`
 
 ### 本地测试命令
@@ -232,9 +239,26 @@ git add ent/       # 生成的文件也要提交
 
 ---
 
-### 坑 11：PR 提交前检查清单
+### 坑 11：误推到上游仓库
 
-提交 PR 前务必本地验证：
+**问题**：本项目只做个人 fork 修改，不希望把个人代码推到 `Wei-Shaw/sub2api`。
+
+**保护**：
+```bash
+git remote set-url --push upstream DISABLED
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/check-personal-fork.ps1
+```
+
+**提交原则**：
+- `upstream` 只用于 `fetch` 和本地比较；
+- 个人代码只推送到 `origin`；
+- 推送时显式写出远程名，例如 `git push origin personal/optimization`。
+
+---
+
+### 坑 12：提交前检查清单
+
+提交前务必本地验证：
 
 - [ ] `go test -tags=unit ./...` 通过
 - [ ] `go test -tags=integration ./...` 通过
@@ -264,18 +288,24 @@ psql -U sub2api -h 127.0.0.1 -d sub2api -f migration.sql
 ### Git 操作
 
 ```bash
-# 同步上游
+# 查看当前保护状态
+git remote -v
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/check-personal-fork.ps1
+
+# 确保 upstream 只读
+git remote set-url --push upstream DISABLED
+
+# 同步上游到本地 main（不 push upstream）
 git fetch upstream
-git checkout main
+git switch main
 git merge upstream/main
-git push origin main
 
-# 创建功能分支
-git checkout -b feature/xxx
+# 回到个人优化分支
+git switch personal/optimization
+git rebase main
 
-# Rebase 到最新 main
-git fetch upstream
-git rebase upstream/main
+# 只推送到自己的 fork
+git push origin personal/optimization
 ```
 
 ### 前端操作
